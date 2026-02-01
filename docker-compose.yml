@@ -59,7 +59,9 @@ services:
       dockerfile: Dockerfile
       target: app
       args:
-        NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+        # build-time NEXT_PUBLIC_* for the App
+        NEXT_PUBLIC_BETTER_AUTH_URL: ${APP_PUBLIC_URL}
+        NEXT_PUBLIC_PORTAL_URL: ${PORTAL_PUBLIC_URL}
     ports:
       - '3000:3000'
     env_file:
@@ -68,6 +70,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
       HOSTNAME: 0.0.0.0
       PORT: 3000
+
+      # runtime auth URLs for the App
+      BETTER_AUTH_URL: ${APP_PUBLIC_URL}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${APP_PUBLIC_URL}
+      NEXT_PUBLIC_PORTAL_URL: ${PORTAL_PUBLIC_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -86,7 +93,8 @@ services:
       dockerfile: Dockerfile
       target: portal
       args:
-        NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL_PORTAL}
+        # build-time NEXT_PUBLIC_* for the Portal
+        NEXT_PUBLIC_BETTER_AUTH_URL: ${PORTAL_PUBLIC_URL}
     ports:
       - '3002:3000'
     env_file:
@@ -95,6 +103,10 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
       HOSTNAME: 0.0.0.0
       PORT: 3000
+
+      # runtime auth URLs for the Portal
+      BETTER_AUTH_URL: ${PORTAL_PUBLIC_URL}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${PORTAL_PUBLIC_URL}
     depends_on:
       db:
         condition: service_healthy
