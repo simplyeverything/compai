@@ -6,6 +6,22 @@ x-logging: &default-logging
     compress: 'true'
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-compai}
+      POSTGRES_USER: ${POSTGRES_USER:-compai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-compai_password_change_me}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *default-logging
+
   migrator:
     build:
       context: .
@@ -13,7 +29,13 @@ services:
       target: migrator
     env_file:
       - packages/db/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
     logging: *default-logging
+
   seeder:
     build:
       context: .
@@ -21,8 +43,14 @@ services:
       target: migrator
     env_file:
       - packages/db/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
     command: sh -lc "bunx prisma generate --schema=node_modules/@trycompai/db/dist/schema.prisma && bun packages/db/prisma/seed/seed.js"
     logging: *default-logging
+
   app:
     build:
       context: .
@@ -34,6 +62,11 @@ services:
       - '3000:3000'
     env_file:
       - apps/app/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
@@ -42,6 +75,7 @@ services:
       retries: 3
     command: sh -lc "node apps/app/server.js"
     logging: *default-logging
+
   portal:
     build:
       context: .
@@ -53,6 +87,11 @@ services:
       - '3002:3000'
     env_file:
       - apps/portal/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/ || exit 1']
@@ -60,3 +99,6 @@ services:
       timeout: 10s
       retries: 3
     logging: *default-logging
+
+volumes:
+  db_data:
