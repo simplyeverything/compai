@@ -34,6 +34,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: "no"
     logging: *default-logging
 
   seeder:
@@ -48,6 +49,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: "no"
     command: sh -lc "bunx prisma generate --schema=node_modules/@trycompai/db/dist/schema.prisma && bun packages/db/prisma/seed/seed.js"
     logging: *default-logging
 
