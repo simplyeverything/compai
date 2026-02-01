@@ -59,22 +59,30 @@ services:
       dockerfile: Dockerfile
       target: app
       args:
-        # Build-time public URLs (provided by Coolify automatically)
+        # Build-time public URL used by the app frontend
         NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_APP}
+        # Optional but commonly used in UI links
         NEXT_PUBLIC_PORTAL_URL: ${SERVICE_URL_PORTAL}
     ports:
       - '3000:3000'
     env_file:
       - apps/app/.env
     environment:
+      # DB
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+
+      # Make Next bind properly in containers
       HOSTNAME: 0.0.0.0
       PORT: 3000
 
-      # Runtime public URLs (same as build-time)
+      # App base URL for Better Auth
       BETTER_AUTH_URL: ${SERVICE_URL_APP}
       NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_APP}
       NEXT_PUBLIC_PORTAL_URL: ${SERVICE_URL_PORTAL}
+
+      # Critical: allow portal -> app cross-origin auth calls
+      # (Comma-separated; no spaces)
+      AUTH_TRUSTED_ORIGINS: ${SERVICE_URL_APP},${SERVICE_URL_PORTAL},http://localhost:3000,http://localhost:3002
     depends_on:
       db:
         condition: service_healthy
@@ -93,20 +101,23 @@ services:
       dockerfile: Dockerfile
       target: portal
       args:
-        # Build-time public URL for Portal (provided by Coolify automatically)
-        NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_PORTAL}
+        # Portal UI should call auth on the APP domain (auth handler lives on app)
+        NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_APP}
     ports:
       - '3002:3000'
     env_file:
       - apps/portal/.env
     environment:
+      # DB (portal may still need DB reads)
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+
+      # Make Next bind properly in containers
       HOSTNAME: 0.0.0.0
       PORT: 3000
 
-      # Runtime public URL for Portal
-      BETTER_AUTH_URL: ${SERVICE_URL_PORTAL}
-      NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_PORTAL}
+      # Portal should point auth requests to the APP base URL
+      BETTER_AUTH_URL: ${SERVICE_URL_APP}
+      NEXT_PUBLIC_BETTER_AUTH_URL: ${SERVICE_URL_APP}
     depends_on:
       db:
         condition: service_healthy
