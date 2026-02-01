@@ -66,12 +66,14 @@ services:
       - apps/app/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api/health >/dev/null 2>&1 || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -91,12 +93,14 @@ services:
       - apps/portal/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-compai}:${POSTGRES_PASSWORD:-compai_password_change_me}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-compai}?schema=public
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/ || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
